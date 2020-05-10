@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/../TwoFactorAuth.iml" filepath="$PROJECT_DIR$/../TwoFactorAuth.iml" group="TwoFactorAuth" />
+      <module fileurl="file://$PROJECT_DIR$/app.iml" filepath="$PROJECT_DIR$/app.iml" group="TwoFactorAuth/app" />
+      <module fileurl="file://$PROJECT_DIR$/../openCVLibrary347/openCVLibrary347.iml" filepath="$PROJECT_DIR$/../openCVLibrary347/openCVLibrary347.iml" group="TwoFactorAuth/openCVLibrary347" />
+    </modules>
+  </component>
+</project>

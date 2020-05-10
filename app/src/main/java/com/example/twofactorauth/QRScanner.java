@@ -46,7 +46,6 @@ public class QRScanner extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-
         barcodeDetector = new BarcodeDetector.Builder(this)
                 .setBarcodeFormats(Barcode.QR_CODE)
                 .build();
@@ -60,6 +59,7 @@ public class QRScanner extends AppCompatActivity {
                 .setAutoFocusEnabled(true)
                 .build();
 
+        tvResult.setText("Scanning...");
         startDetection();
     }
 
@@ -105,17 +105,18 @@ public class QRScanner extends AppCompatActivity {
                 if (qrCodes.size() != 0){
                     tvResult.post(new Runnable(){
                         @Override
-                        public void run(){
+                        public void run() {
                             Vibrator vibrator = (Vibrator)getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
                             if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)  {
                                 vibrator.vibrate(VibrationEffect.createOneShot(1000, VibrationEffect.DEFAULT_AMPLITUDE));
                             } else {
                                 vibrator.vibrate(1000);
                             }
-                            tvResult.setText(qrCodes.valueAt(0).displayValue);
+                            Log.i(className, " QR Code value: " + qrCodes.valueAt(0).displayValue);
+                            tvResult.setText("Saving Result...");
+                            // FUTURE FEATURE : need to store it somewhere safe
                             Intent intent = getIntent();
-
-                            intent.putExtra("QRScanner", qrCodes.valueAt(0).displayValue);
+                            intent.putExtra("secret", qrCodes.valueAt(0).displayValue);
                             setResult(RESULT_OK, intent);
                             finish();
                         }

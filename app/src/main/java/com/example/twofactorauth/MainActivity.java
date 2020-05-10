@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Switch;
@@ -16,13 +17,10 @@ import org.opencv.core.Mat;
 
 public class MainActivity extends AppCompatActivity  {
 
+    private final  String className = Security.class.getSimpleName();
     private static Button btnConfirm;
     private static Switch swtFaceRecognition;
-    private static TextView txtResult;
     private static boolean savedSecurity = false;
-    private static final int startQR = 1;
-
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,17 +48,16 @@ public class MainActivity extends AppCompatActivity  {
 
     private void configureSecurity() {
         swtFaceRecognition = findViewById(R.id.swtFaceRecognition);
-        txtResult = findViewById(R.id.txtResult);
         if (swtFaceRecognition.isChecked()) {
-            txtResult.setText("facial recognition");
+            btnConfirm.setText("Facial scan");
             Intent intent = new Intent("android.intent.action.Security");
-            startActivityForResult(intent,2);
+            startActivityForResult(intent,1);
             //(new Handler()).postDelayed(this::startActivityForResult(intent, 1)), 5000);
         }
         else {
-            txtResult.setText("QR Scan");
+            btnConfirm.setText("Continue without security");
             Intent intent = new Intent("android.intent.action.QRScanner");
-            startActivityForResult(intent, startQR);
+            startActivityForResult(intent, 2);
 
         }
     }
@@ -68,10 +65,13 @@ public class MainActivity extends AppCompatActivity  {
     @Override
     protected void onActivityResult (int requestCode, int resultCode, Intent data){
         super.onActivityResult (requestCode, resultCode, data);
-        if(requestCode == 1)
-            if(resultCode == RESULT_OK){
-//                txtResult = data.getStringExtra("QRCode");
-//                txtResult.setText("" + result);
+        if(requestCode == 2)
+            if(resultCode == RESULT_OK) {
+                String secret = data.getStringExtra("secret");
+                Intent generateCode = new Intent("android.intent.action.TotpCodeGenerator");
+                Log.i(className, "" + secret);
+                generateCode.putExtra("secret", secret);
+                startActivity(generateCode);
             }
     }
 }
