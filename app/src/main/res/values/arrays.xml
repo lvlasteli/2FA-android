@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="detection_options">
+        <item> Neural Network (Fast) </item>
+        <item> Haarcascade (Slow) </item>
+    </string-array>
+</resources>

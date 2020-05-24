@@ -1,42 +1,58 @@
 package com.example.twofactorauth;
 
-import androidx.appcompat.app.AppCompatActivity;
-
-
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.Switch;
-import android.widget.TextView;
+import android.widget.Spinner;
+import androidx.appcompat.app.AppCompatActivity;
 
-import org.opencv.android.CameraBridgeViewBase;
-import org.opencv.core.Mat;
+public class MainActivity extends AppCompatActivity  implements AdapterView.OnItemSelectedListener {
 
-public class MainActivity extends AppCompatActivity  {
+    private final  String className = MainActivity.class.getSimpleName();
+    private static Button btnQRScann;
+    private static Button btnFaceRecognition;
+    private static Spinner spnFacialAlgorithm;
+    static String selectedItem;
 
-    private final  String className = Security.class.getSimpleName();
-    private static Button btnConfirm;
-    private static Switch swtFaceRecognition;
+
+    //private static Button getBtnFaceRecognition2;
     private static boolean savedSecurity = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main); // Default code
-        btnConfirm = findViewById(R.id.btnConfirm);
+        btnQRScann = findViewById(R.id.btn_qr_code);
+        btnFaceRecognition = findViewById(R.id.btn_facial_recognition);
+        spnFacialAlgorithm = findViewById(R.id.facial_detection_options);
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.detection_options, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spnFacialAlgorithm.setAdapter(adapter);
+        spnFacialAlgorithm.setOnItemSelectedListener(this);
+        //check if we have saved set of faces
     }
 
     @Override
     protected void onStart() {
         super.onStart();
         if(!savedSecurity) {
-            btnConfirm.setOnClickListener(new View.OnClickListener() {
+            btnFaceRecognition.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    configureSecurity();
+
+                    setUpFacialRecognition();
+                }
+            });
+
+            btnQRScann.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    startQRScan();
                 }
             });
         }
@@ -46,25 +62,42 @@ public class MainActivity extends AppCompatActivity  {
     }
 
 
-    private void configureSecurity() {
-        swtFaceRecognition = findViewById(R.id.swtFaceRecognition);
-        if (swtFaceRecognition.isChecked()) {
-            btnConfirm.setText("Facial scan");
-            Intent intent = new Intent("android.intent.action.Security");
-            startActivityForResult(intent,1);
-            //(new Handler()).postDelayed(this::startActivityForResult(intent, 1)), 5000);
-        }
-        else {
-            btnConfirm.setText("Continue without security");
-            Intent intent = new Intent("android.intent.action.QRScanner");
-            startActivityForResult(intent, 2);
+    private void startQRScan() {
+        Intent intent = new Intent("android.intent.action.QRScanner");
+        startActivityForResult(intent, 2);
+    }
 
+    private void setUpFacialRecognition() {
+        Log.e(className, "Selected method: " + selectedItem);
+        if(selectedItem.equals("Neural Network (Fast)")) {
+            Intent intent = new Intent("android.intent.action.FaceDetector");
+            intent.putExtra("name", selectedItem);
+            (new Handler()).postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    startActivityForResult(intent, 1);
+                }
+            }, 1000);
+        } else {
+            Intent intent = new Intent("android.intent.action.FaceDetector2");
+            intent.putExtra("name", selectedItem);
+            (new Handler()).postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    startActivityForResult(intent, 1);
+                }
+            }, 1000);
         }
     }
 
     @Override
     protected void onActivityResult (int requestCode, int resultCode, Intent data){
         super.onActivityResult (requestCode, resultCode, data);
+        if(requestCode == 1) {
+            if(resultCode == RESULT_OK) {
+                startQRScan();
+            }
+        }
         if(requestCode == 2)
             if(resultCode == RESULT_OK) {
                 String secret = data.getStringExtra("secret");
@@ -73,6 +106,16 @@ public class MainActivity extends AppCompatActivity  {
                 generateCode.putExtra("secret", secret);
                 startActivity(generateCode);
             }
+    }
+
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        selectedItem = parent.getItemAtPosition(position).toString();
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
+
     }
 }
 

@@ -22,12 +22,12 @@ import com.google.android.gms.vision.barcode.BarcodeDetector;
 
 import java.io.IOException;
 
-import androidx.core.app.ActivityCompat;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 public class QRScanner extends AppCompatActivity {
 
-    private final  String className = Security.class.getSimpleName();
+    private final  String className = QRScanner.class.getSimpleName();
     private SurfaceView backCamera;
     private TextView tvResult;
     private BarcodeDetector barcodeDetector;

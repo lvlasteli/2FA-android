@@ -4,6 +4,7 @@
 
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -30,18 +31,31 @@
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".Security">
+
+        <activity android:name=".FaceDetector"
+            android:screenOrientation="landscape">
             <intent-filter>
-                <action android:name="android.intent.action.Security" />
+                <action android:name="android.intent.action.FaceDetector" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <activity android:name=".FaceDetector2"
+            android:screenOrientation="landscape">
+            <intent-filter>
+                <action android:name="android.intent.action.FaceDetector2" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <activity android:name=".TotpCodeGenerator">
             <intent-filter>
                 <action android:name="android.intent.action.TotpCodeGenerator" />
+
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
