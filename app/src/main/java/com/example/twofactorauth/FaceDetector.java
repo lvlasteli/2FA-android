@@ -6,8 +6,10 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.util.Log;
 import android.view.SurfaceView;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.widget.Toolbar;
 
@@ -30,6 +32,8 @@ import java.io.IOException;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 
 
 public class FaceDetector extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2 {
@@ -37,12 +41,15 @@ public class FaceDetector extends AppCompatActivity implements CameraBridgeViewB
     private final  String className = FaceDetector.class.getSimpleName();
     private CameraBridgeViewBase cameraBridgeViewBase; //our front facing camera
     private BaseLoaderCallback baseLoaderCallback;
-    private Toolbar tlbAlhorithamName;
+    private TextView txtView;
     private String detectorName;
-    static int countImages;
+    private String mPath;
+    MutableLiveData<Integer> countImages = new MutableLiveData<>();
     static final int MAX_IMAGES = 10;
     //network model
     Net faceDetector;
+    String protoPath;
+    String caffeWeights;
 
     static  {
         OpenCVLoader.initDebug();
@@ -53,15 +60,28 @@ public class FaceDetector extends AppCompatActivity implements CameraBridgeViewB
         super.onCreate(savedInstanceState);
         Intent intent = getIntent();
         detectorName = intent.getStringExtra("name");
+        mPath = intent.getStringExtra("mPath");
 
         setContentView(R.layout.activity_face_detection);
-        String protoPath;
-        String caffeWeights;
 
+
+        txtView = findViewById(R.id.txt_detectorName);
+        txtView.setText(detectorName);
+        // make our Java camera support OpenCV functions
+        cameraBridgeViewBase = (JavaCameraView) findViewById(R.id.java_camera_view);
+        cameraBridgeViewBase.setCameraIndex(CameraBridgeViewBase.CAMERA_ID_FRONT);
+        cameraBridgeViewBase.setVisibility(SurfaceView.VISIBLE);
+        cameraBridgeViewBase.setCvCameraViewListener(this);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        countImages.setValue(0);
         if (ActivityCompat.checkSelfPermission(FaceDetector.this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
             // external memory is actually phones hard drive memory
             // we must have deep neural networks downloaded and pasted in dnns folder below
-             protoPath = Environment.getExternalStorageDirectory() + "/dnns/deploy.prototxt";
+            protoPath = Environment.getExternalStorageDirectory() + "/dnns/deploy.prototxt";
             caffeWeights = Environment.getExternalStorageDirectory() + "/dnns/res10_300x300_ssd_iter_140000.caffemodel";
             Log.i(className, "External Storage finished. proto path: " + protoPath + "caffeModel path: "  + caffeWeights +  " .Creating our Network");
             faceDetector = Dnn.readNetFromCaffe(protoPath, caffeWeights);
@@ -69,16 +89,6 @@ public class FaceDetector extends AppCompatActivity implements CameraBridgeViewB
         } else {
             ActivityCompat.requestPermissions(FaceDetector.this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
         }
-
-        // make our Java camera support OpenCV functions
-        tlbAlhorithamName = (Toolbar) findViewById(R.id.toolbar_algorithm);
-        tlbAlhorithamName.setTitle(detectorName);
-
-        cameraBridgeViewBase = (JavaCameraView) findViewById(R.id.java_camera_view);
-        cameraBridgeViewBase.setCameraIndex(CameraBridgeViewBase.CAMERA_ID_FRONT);
-        cameraBridgeViewBase.setVisibility(SurfaceView.VISIBLE);
-        cameraBridgeViewBase.setCvCameraViewListener(this);
-
         baseLoaderCallback = new BaseLoaderCallback(this) {
             @Override
             public void onManagerConnected(int status) throws IOException {
@@ -94,12 +104,24 @@ public class FaceDetector extends AppCompatActivity implements CameraBridgeViewB
                 }
             }
         };
-    }
+        countImages.observe(this, new Observer<Integer>() {
+            @Override
+            public void onChanged(Integer integer) {
+                //Log.e(className, "countImages: " + integer);
+                if(integer == 10) {
+                    Toast.makeText(getApplicationContext(), "Saved", Toast.LENGTH_SHORT).show();
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            Intent intent = getIntent();
+                            setResult(RESULT_OK, intent);
+                            finish();
+                        }
+                    }, 2000);
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-         countImages = 0;
+                }
+            }
+        });
 
     }
 
@@ -129,7 +151,7 @@ public class FaceDetector extends AppCompatActivity implements CameraBridgeViewB
         for (int i = 0; i < detections.rows(); ++i) {
             // get confidence value from second position (first one is class value)
             double confidence  = detections.get(i, 2)[0];
-           // Log.i(className, "Confidence: "+ confidence + " Threshold: " + THRESHOLD);
+            // Log.i(className, "Confidence: "+ confidence + " Threshold: " + THRESHOLD);
             if(confidence >= THRESHOLD) {
                 // the net outputs left,top,right,bottom as percentage % values which we use to multiply with corresponding
                 // x (cols), y (rows) dimensions of the image to get the exact integer pixel values
@@ -162,13 +184,9 @@ public class FaceDetector extends AppCompatActivity implements CameraBridgeViewB
 
                 Rect rect = new Rect(new Point(left, top),  new Point(right, bottom));
                 Mat m = frame.submat(rect);
-                if (countImages < MAX_IMAGES) {
-                    add(m, countImages);
-                    countImages++;
-                } else {
-                    Intent intent = getIntent();
-                    setResult(RESULT_OK, intent);
-                    finish();
+                if (countImages.getValue() < MAX_IMAGES) {
+                    add(m, countImages.getValue());
+                    countImages.postValue(countImages.getValue() + 1);
                 }
                 // create yellow rectangle with these points
                 Imgproc.rectangle(frame, new Point(left, top), new Point(right, bottom), new Scalar(255, 255, 0), 2);
@@ -180,7 +198,6 @@ public class FaceDetector extends AppCompatActivity implements CameraBridgeViewB
     public void add(Mat m, int countImages) {
         Bitmap bmp = Bitmap.createBitmap(m.width(), m.height(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(m, bmp);
-        String mPath = Environment.getExternalStorageDirectory()+"/facerecogOCV/";
         int WIDTH= 128;
         int HEIGHT= 128;
         bmp= Bitmap.createScaledBitmap(bmp, WIDTH, HEIGHT, false);

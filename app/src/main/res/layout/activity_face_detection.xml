@@ -5,35 +5,32 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar_algorithm"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:background="#009688"
-        android:theme="@style/ThemeOverlay.AppCompat.Dark"
-        android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.0"
-        app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
-        app:titleTextColor="@color/common_google_signin_btn_text_light"
-        tools:visibility="visible" />
-
     <org.opencv.android.JavaCameraView
         android:id="@+id/java_camera_view"
         android:layout_width="match_parent"
-        android:layout_height="233dp"
+        android:layout_height="match_parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/toolbar_algorithm"
-        app:layout_constraintVertical_bias="0.0">
-
+        app:layout_constraintTop_toTopOf="parent">
     </org.opencv.android.JavaCameraView>
+
+    <TextView
+        android:id="@+id/txt_detectorName"
+        android:layout_width="134dp"
+        android:layout_height="31dp"
+        android:text="TextView"
+        android:visibility="visible"
+        android:autoSizeTextType="uniform"
+        android:textAlignment="center"
+        android:textColor="#fff"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/java_camera_view"
+        app:layout_constraintVertical_bias="0.857" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -8,7 +8,6 @@
     tools:context=".MainActivity"
     tools:visibility="visible">
 
-
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
@@ -53,19 +52,6 @@
         app:layout_constraintTop_toBottomOf="@+id/toolbar"
         tools:layout_editor_absoluteX="0dp" />
 
-    <Button
-        android:id="@+id/btn_qr_code"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="@android:color/holo_green_light"
-        android:text="2) Continue without Security"
-        android:textAllCaps="false"
-        android:textColor="@android:color/white"
-        android:textSize="15sp"
-        android:textStyle="bold"
-        app:layout_constraintTop_toBottomOf="@+id/facial_detection_options" />
-
     <Spinner
         android:id="@+id/facial_detection_options"
         android:layout_width="358dp"
@@ -79,4 +65,30 @@
         app:layout_constraintTop_toBottomOf="@+id/btn_facial_recognition"
         tools:visibility="visible" />
 
+    <Button
+        android:id="@+id/btn_qr_code"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@android:color/holo_green_light"
+        android:text="2) Continue without Security"
+        android:textAllCaps="false"
+        android:textColor="@android:color/white"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toBottomOf="@+id/facial_detection_options" />
+
+    <Button
+        android:id="@+id/btn_recognize"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@android:color/holo_red_light"
+        android:text="3) Recognize (temporary)"
+        android:textAllCaps="false"
+        android:textColor="@android:color/white"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toBottomOf="@+id/btn_qr_code"
+        tools:layout_editor_absoluteX="-16dp" />
 </androidx.constraintlayout.widget.ConstraintLayout>

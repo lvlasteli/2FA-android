@@ -6,11 +6,11 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Bundle;
-import android.os.Environment;
-import android.os.Message;
+import android.os.Handler;
 import android.util.Log;
+import android.widget.TextView;
 import android.widget.Toast;
-import androidx.appcompat.widget.Toolbar;
+
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
@@ -35,6 +35,8 @@ import java.io.InputStream;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 
 
 public class FaceDetector2 extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2 {
@@ -43,11 +45,12 @@ public class FaceDetector2 extends AppCompatActivity implements CameraBridgeView
     private final  String className = FaceDetector2.class.getSimpleName();
     File cascadeFile;
     CascadeClassifier faceDetector;
-    private Toolbar tlbAlhorithamName;
+    private TextView txtView;
     private String detectorName;
+    private String mPath;
     static final int REQUEST_CAMERA = 0;
     static final long MAX_IMAGES = 10;
-    int countImages;
+    MutableLiveData<Integer> countImages = new MutableLiveData<>();
     private Mat mRgba, mGray;
 
 
@@ -56,6 +59,7 @@ public class FaceDetector2 extends AppCompatActivity implements CameraBridgeView
         super.onCreate(savedInstanceState);
         Intent intent = getIntent();
         detectorName = intent.getStringExtra("name");
+        mPath = intent.getStringExtra("mPath");
 
         setContentView(R.layout.activity_face_detection);
 
@@ -67,8 +71,8 @@ public class FaceDetector2 extends AppCompatActivity implements CameraBridgeView
             Log.i("permission", "READ_EXTERNAL_STORAGE already granted");
         }
 
-        tlbAlhorithamName = (Toolbar) findViewById(R.id.toolbar_algorithm);
-        tlbAlhorithamName.setTitle(detectorName);
+        txtView = findViewById(R.id.txt_detectorName);
+        txtView.setText(detectorName);
         cameraView = (JavaCameraView)findViewById(R.id.java_camera_view);
         cameraView.setCameraIndex(CameraBridgeViewBase.CAMERA_ID_FRONT);
 
@@ -87,7 +91,25 @@ public class FaceDetector2 extends AppCompatActivity implements CameraBridgeView
     @Override
     protected void onStart() {
         super.onStart();
-        countImages = 0;
+        countImages.setValue(0);
+        countImages.observe(this, new Observer<Integer>() {
+            @Override
+            public void onChanged(Integer integer) {
+                //Log.e(className, "countImages: " + integer);
+                if(integer == 10) {
+                    Toast.makeText(getApplicationContext(), "Saved", Toast.LENGTH_SHORT).show();
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            Intent intent = getIntent();
+                            setResult(RESULT_OK, intent);
+                            finish();
+                        }
+                    }, 2000);
+
+                }
+            }
+        });
     }
 
 
@@ -115,14 +137,9 @@ public class FaceDetector2 extends AppCompatActivity implements CameraBridgeView
             Mat m;
             Rect rect = facesArray[0];
             m = mRgba.submat(rect);
-            if (countImages < MAX_IMAGES)
-            {
-                add(m, countImages);
-                countImages++;
-            } else {
-                Intent intent = getIntent();
-                setResult(RESULT_OK, intent);
-                finish();
+            if (countImages.getValue() < MAX_IMAGES) {
+                add(m, countImages.getValue());
+                countImages.postValue(countImages.getValue() + 1);
             }
         }
 
@@ -132,7 +149,6 @@ public class FaceDetector2 extends AppCompatActivity implements CameraBridgeView
     public void add(Mat m, int countImages) {
         Bitmap bmp = Bitmap.createBitmap(m.width(), m.height(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(m, bmp);
-        String mPath = Environment.getExternalStorageDirectory()+"/facerecogOCV/";
         int WIDTH= 128;
         int HEIGHT= 128;
         bmp= Bitmap.createScaledBitmap(bmp, WIDTH, HEIGHT, false);
@@ -153,7 +169,7 @@ public class FaceDetector2 extends AppCompatActivity implements CameraBridgeView
         @Override
         public void onManagerConnected(int status) throws IOException {
 
-            Log.i("LOL", "OpenCV loaded successfully");
+            Log.i(className, "OpenCV loaded successfully");
 
             switch (status) {
                 case BaseLoaderCallback.SUCCESS: {
@@ -180,7 +196,7 @@ public class FaceDetector2 extends AppCompatActivity implements CameraBridgeView
                             cascadeDir.delete();
                     } catch (IOException e) {
                         e.printStackTrace();
-                        Log.e("LOL", "Failed to load cascade. Exception thrown: " + e);
+                        Log.e(className, "Failed to load cascade. Exception thrown: " + e);
                     }
 
                     cameraView.enableView();
@@ -189,7 +205,7 @@ public class FaceDetector2 extends AppCompatActivity implements CameraBridgeView
                 break;
                 default:
                     super.onManagerConnected(status);
-                break;
+                    break;
             }
         }
     };
