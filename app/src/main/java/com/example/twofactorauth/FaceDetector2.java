@@ -6,13 +6,15 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Bundle;
-import android.os.Environment;
-import android.os.Message;
+import android.os.Handler;
 import android.util.Log;
+import android.view.SurfaceView;
+import android.widget.TextView;
 import android.widget.Toast;
-import androidx.appcompat.widget.Toolbar;
+
 
 import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.CameraActivity;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.JavaCameraView;
 import org.opencv.android.LoaderCallbackInterface;
@@ -31,21 +33,19 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
+import java.util.Collections;
+import java.util.List;
 
 
-public class FaceDetector2 extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2 {
+public class FaceDetector2 extends CameraActivity implements CameraBridgeViewBase.CvCameraViewListener2 {
 
-    private JavaCameraView cameraView;
+    private CameraBridgeViewBase mOpenCvCameraView;
     private final  String className = FaceDetector2.class.getSimpleName();
     File cascadeFile;
     CascadeClassifier faceDetector;
-    private Toolbar tlbAlhorithamName;
+    private TextView txtView;
     private String detectorName;
-    static final int REQUEST_CAMERA = 0;
+    private String mPath;
     static final long MAX_IMAGES = 10;
     int countImages;
     private Mat mRgba, mGray;
@@ -56,32 +56,15 @@ public class FaceDetector2 extends AppCompatActivity implements CameraBridgeView
         super.onCreate(savedInstanceState);
         Intent intent = getIntent();
         detectorName = intent.getStringExtra("name");
+        mPath = intent.getStringExtra("mPath");
 
         setContentView(R.layout.activity_face_detection);
-
-        if (ContextCompat.checkSelfPermission(FaceDetector2.this, Manifest.permission.CAMERA)
-                != PackageManager.PERMISSION_GRANTED) {
-            Log.i("permission", "request READ_EXTERNAL_STORAGE");
-            ActivityCompat.requestPermissions(FaceDetector2.this, new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA);
-        } else {
-            Log.i("permission", "READ_EXTERNAL_STORAGE already granted");
-        }
-
-        tlbAlhorithamName = (Toolbar) findViewById(R.id.toolbar_algorithm);
-        tlbAlhorithamName.setTitle(detectorName);
-        cameraView = (JavaCameraView)findViewById(R.id.java_camera_view);
-        cameraView.setCameraIndex(CameraBridgeViewBase.CAMERA_ID_FRONT);
-
-        if(!OpenCVLoader.initDebug()) {
-            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this,baseCallback);
-        } else {
-            try {
-                baseCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        cameraView.setCvCameraViewListener(this);
+        txtView = findViewById(R.id.txt_detectorName);
+        txtView.setText(detectorName);
+        mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.java_camera_view);
+        mOpenCvCameraView.setCameraIndex(CameraBridgeViewBase.CAMERA_ID_FRONT);
+        mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
+        mOpenCvCameraView.setCvCameraViewListener(this);
     }
 
     @Override
@@ -89,7 +72,6 @@ public class FaceDetector2 extends AppCompatActivity implements CameraBridgeView
         super.onStart();
         countImages = 0;
     }
-
 
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
@@ -101,12 +83,11 @@ public class FaceDetector2 extends AppCompatActivity implements CameraBridgeView
         //scaleFactor  - Parameter specifying how much the image size is reduced at each image scale.
         //minNeighbors – Parameter specifying how many neighbors each candidate rectangle should have to retain it.
         // This parameter will affect the quality of the detected faces. Higher value results in less detections but with higher quality. 3~6 is a good value for it.
-        faceDetector.detectMultiScale(mGray, faces, 1.05, 3, 2,
+        faceDetector.detectMultiScale(mGray, faces, 1.05, 6, 2,
                 new Size(200,200), new Size());
 
         Rect[] facesArray = faces.toArray();
 
-        Log.i(className, "faces: " + facesArray.length);
         for(Rect rect: facesArray) {
             Imgproc.rectangle(mRgba, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height), new Scalar(255,255, 0), 3);
         }
@@ -115,8 +96,7 @@ public class FaceDetector2 extends AppCompatActivity implements CameraBridgeView
             Mat m;
             Rect rect = facesArray[0];
             m = mRgba.submat(rect);
-            if (countImages < MAX_IMAGES)
-            {
+            if (countImages < MAX_IMAGES) {
                 add(m, countImages);
                 countImages++;
             } else {
@@ -132,7 +112,6 @@ public class FaceDetector2 extends AppCompatActivity implements CameraBridgeView
     public void add(Mat m, int countImages) {
         Bitmap bmp = Bitmap.createBitmap(m.width(), m.height(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(m, bmp);
-        String mPath = Environment.getExternalStorageDirectory()+"/facerecogOCV/";
         int WIDTH= 128;
         int HEIGHT= 128;
         bmp= Bitmap.createScaledBitmap(bmp, WIDTH, HEIGHT, false);
@@ -149,78 +128,85 @@ public class FaceDetector2 extends AppCompatActivity implements CameraBridgeView
         }
     }
 
-    private BaseLoaderCallback baseCallback = new BaseLoaderCallback(this) {
-        @Override
-        public void onManagerConnected(int status) throws IOException {
+    // needed when we extend or class with CameraActivity
+    @Override
+    protected List<? extends CameraBridgeViewBase> getCameraViewList() {
+        return Collections.singletonList(mOpenCvCameraView);
+    }
 
-            Log.i("LOL", "OpenCV loaded successfully");
-
-            switch (status) {
-                case BaseLoaderCallback.SUCCESS: {
-                    try {
-                        InputStream inputStream = getResources().openRawResource(R.raw.haarcascade_frontalface_alt2);
-                        File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
-                        cascadeFile = new File(cascadeDir, "haarcascade_frontalface_alt2.xml");
-                        FileOutputStream fileOutputStream = new FileOutputStream(cascadeFile);
-
-                        byte[] buffer = new byte[4096];
-                        int bytesRead;
-
-                        while((bytesRead = inputStream.read(buffer)) != -1) {
-                            fileOutputStream.write(buffer, 0, bytesRead);
-                        }
-                        inputStream.close();
-                        fileOutputStream.close();
-
-                        faceDetector = new CascadeClassifier(cascadeFile.getAbsolutePath());
-
-                        if(faceDetector.empty())
-                            faceDetector = null;
-                        else
-                            cascadeDir.delete();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        Log.e("LOL", "Failed to load cascade. Exception thrown: " + e);
-                    }
-
-                    cameraView.enableView();
-                    cameraView.setMaxFrameSize(1280, 720);
-                }
-                break;
-                default:
-                    super.onManagerConnected(status);
-                break;
-            }
-        }
-    };
     @Override
     public void onCameraViewStarted(int width, int height) {
-        mRgba = new Mat();
-        mGray = new Mat();
+        try {
+            InputStream inputStream = getResources().openRawResource(R.raw.haarcascade_frontalface_alt2);
+            File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
+            cascadeFile = new File(cascadeDir, "haarcascade_frontalface_alt2.xml");
+            FileOutputStream fileOutputStream = new FileOutputStream(cascadeFile);
+
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+
+            while((bytesRead = inputStream.read(buffer)) != -1) {
+                fileOutputStream.write(buffer, 0, bytesRead);
+            }
+            inputStream.close();
+            fileOutputStream.close();
+
+            faceDetector = new CascadeClassifier(cascadeFile.getAbsolutePath());
+
+            if(faceDetector.empty())
+                faceDetector = null;
+            else
+                cascadeDir.delete();
+        } catch (IOException e) {
+
+        }
+
     }
     @Override
     public void onCameraViewStopped() {
-        mGray.release();
-        mRgba.release();
+
     }
 
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
+        if (!OpenCVLoader.initDebug()) {
+            Log.d(className, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION, this, mLoaderCallback);
+        } else {
+            Log.d(className, "OpenCV library found inside package. Using it!");
+            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
+        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (cameraView != null)
-            cameraView.disableView();
+        if (mOpenCvCameraView != null)
+            mOpenCvCameraView.disableView();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (cameraView != null)
-            cameraView.disableView();
+        if (mOpenCvCameraView != null)
+            mOpenCvCameraView.disableView();
     }
-}
 
+    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
+        @Override
+        public void onManagerConnected(int status) {
+            switch (status) {
+                case LoaderCallbackInterface.SUCCESS: {
+                    Log.i(className, "OpenCV loaded successfully");
+                    mOpenCvCameraView.enableView();
+                }
+                break;
+                default: {
+                    super.onManagerConnected(status);
+                }
+                break;
+            }
+        }
+    };
+}

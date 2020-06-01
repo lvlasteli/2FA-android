@@ -2,6 +2,7 @@ package com.example.twofactorauth;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
@@ -17,6 +18,11 @@ public class MainActivity extends AppCompatActivity  implements AdapterView.OnIt
     private static Button btnQRScann;
     private static Button btnFaceRecognition;
     private static Spinner spnFacialAlgorithm;
+
+    private static  Button btnRecognize;
+
+
+    private final String mPath = Environment.getExternalStorageDirectory()+"/facerecogOCV/";;
     static String selectedItem;
 
 
@@ -34,6 +40,10 @@ public class MainActivity extends AppCompatActivity  implements AdapterView.OnIt
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spnFacialAlgorithm.setAdapter(adapter);
         spnFacialAlgorithm.setOnItemSelectedListener(this);
+
+        //temporary
+        btnRecognize = findViewById(R.id.btn_recognize);
+
         //check if we have saved set of faces
     }
 
@@ -44,7 +54,6 @@ public class MainActivity extends AppCompatActivity  implements AdapterView.OnIt
             btnFaceRecognition.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-
                     setUpFacialRecognition();
                 }
             });
@@ -55,9 +64,19 @@ public class MainActivity extends AppCompatActivity  implements AdapterView.OnIt
                     startQRScan();
                 }
             });
+
+            btnRecognize.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent intent = new Intent("android.intent.action.FaceIdentifier");
+                    intent.putExtra("mPath", mPath);
+                    startActivityForResult(intent, 3);
+                }
+            });
         }
         else {
             //we have owners face saved so we need to open camera and screen users face
+
         }
     }
 
@@ -72,6 +91,7 @@ public class MainActivity extends AppCompatActivity  implements AdapterView.OnIt
         if(selectedItem.equals("Neural Network (Fast)")) {
             Intent intent = new Intent("android.intent.action.FaceDetector");
             intent.putExtra("name", selectedItem);
+            intent.putExtra("mPath", mPath);
             (new Handler()).postDelayed(new Runnable() {
                 @Override
                 public void run() {
@@ -81,6 +101,7 @@ public class MainActivity extends AppCompatActivity  implements AdapterView.OnIt
         } else {
             Intent intent = new Intent("android.intent.action.FaceDetector2");
             intent.putExtra("name", selectedItem);
+            intent.putExtra("mPath", mPath);
             (new Handler()).postDelayed(new Runnable() {
                 @Override
                 public void run() {
@@ -93,9 +114,11 @@ public class MainActivity extends AppCompatActivity  implements AdapterView.OnIt
     @Override
     protected void onActivityResult (int requestCode, int resultCode, Intent data){
         super.onActivityResult (requestCode, resultCode, data);
-        if(requestCode == 1) {
+        if(requestCode == 1 || requestCode == 3) {
             if(resultCode == RESULT_OK) {
                 startQRScan();
+            } else  {
+                Log.e(className, "CANT PROCEED");
             }
         }
         if(requestCode == 2)

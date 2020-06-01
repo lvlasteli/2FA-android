@@ -8,12 +8,12 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 import android.view.SurfaceView;
-import android.widget.Toast;
-import androidx.appcompat.widget.Toolbar;
+import android.widget.TextView;
 
 import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.CameraActivity;
 import org.opencv.android.CameraBridgeViewBase;
-import org.opencv.android.JavaCameraView;
+import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
@@ -26,81 +26,57 @@ import org.opencv.dnn.Net;
 import org.opencv.imgproc.Imgproc;
 
 import java.io.FileOutputStream;
-import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 
-public class FaceDetector extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2 {
+public class FaceDetector extends CameraActivity implements CameraBridgeViewBase.CvCameraViewListener2 {
 
     private final  String className = FaceDetector.class.getSimpleName();
-    private CameraBridgeViewBase cameraBridgeViewBase; //our front facing camera
-    private BaseLoaderCallback baseLoaderCallback;
-    private Toolbar tlbAlhorithamName;
+
+    private CameraBridgeViewBase mOpenCvCameraView; //our front facing camera
+    private TextView txtView;
     private String detectorName;
-    static int countImages;
+    private String mPath;
+    int countImages;
     static final int MAX_IMAGES = 10;
     //network model
-    Net faceDetector;
 
-    static  {
-        OpenCVLoader.initDebug();
-    }
+    Net faceDetector;
+    String protoPath;
+    String caffeWeights;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Intent intent = getIntent();
         detectorName = intent.getStringExtra("name");
+        mPath = intent.getStringExtra("mPath");
 
         setContentView(R.layout.activity_face_detection);
-        String protoPath;
-        String caffeWeights;
 
-        if (ActivityCompat.checkSelfPermission(FaceDetector.this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-            // external memory is actually phones hard drive memory
-            // we must have deep neural networks downloaded and pasted in dnns folder below
-             protoPath = Environment.getExternalStorageDirectory() + "/dnns/deploy.prototxt";
-            caffeWeights = Environment.getExternalStorageDirectory() + "/dnns/res10_300x300_ssd_iter_140000.caffemodel";
-            Log.i(className, "External Storage finished. proto path: " + protoPath + "caffeModel path: "  + caffeWeights +  " .Creating our Network");
-            faceDetector = Dnn.readNetFromCaffe(protoPath, caffeWeights);
 
-        } else {
-            ActivityCompat.requestPermissions(FaceDetector.this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
-        }
-
+        txtView = findViewById(R.id.txt_detectorName);
+        txtView.setText(detectorName);
         // make our Java camera support OpenCV functions
-        tlbAlhorithamName = (Toolbar) findViewById(R.id.toolbar_algorithm);
-        tlbAlhorithamName.setTitle(detectorName);
-
-        cameraBridgeViewBase = (JavaCameraView) findViewById(R.id.java_camera_view);
-        cameraBridgeViewBase.setCameraIndex(CameraBridgeViewBase.CAMERA_ID_FRONT);
-        cameraBridgeViewBase.setVisibility(SurfaceView.VISIBLE);
-        cameraBridgeViewBase.setCvCameraViewListener(this);
-
-        baseLoaderCallback = new BaseLoaderCallback(this) {
-            @Override
-            public void onManagerConnected(int status) throws IOException {
-                super.onManagerConnected(status);
-                switch (status) {
-                    case BaseLoaderCallback.SUCCESS:
-                        Log.i(className, "OpenCv loaded successfully");
-                        cameraBridgeViewBase.enableView();
-                        break;
-                    default:
-                        super.onManagerConnected(status);
-                        break;
-                }
-            }
-        };
+        mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.java_camera_view);
+        mOpenCvCameraView.setCameraIndex(CameraBridgeViewBase.CAMERA_ID_FRONT);
+        mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
+        mOpenCvCameraView.setCvCameraViewListener(this);
+    }
+    @Override
+    protected List<? extends CameraBridgeViewBase> getCameraViewList() {
+        return Collections.singletonList(mOpenCvCameraView);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-         countImages = 0;
-
+        countImages = 0;
     }
 
     @Override
@@ -129,7 +105,7 @@ public class FaceDetector extends AppCompatActivity implements CameraBridgeViewB
         for (int i = 0; i < detections.rows(); ++i) {
             // get confidence value from second position (first one is class value)
             double confidence  = detections.get(i, 2)[0];
-           // Log.i(className, "Confidence: "+ confidence + " Threshold: " + THRESHOLD);
+            // Log.i(className, "Confidence: "+ confidence + " Threshold: " + THRESHOLD);
             if(confidence >= THRESHOLD) {
                 // the net outputs left,top,right,bottom as percentage % values which we use to multiply with corresponding
                 // x (cols), y (rows) dimensions of the image to get the exact integer pixel values
@@ -180,7 +156,6 @@ public class FaceDetector extends AppCompatActivity implements CameraBridgeViewB
     public void add(Mat m, int countImages) {
         Bitmap bmp = Bitmap.createBitmap(m.width(), m.height(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(m, bmp);
-        String mPath = Environment.getExternalStorageDirectory()+"/facerecogOCV/";
         int WIDTH= 128;
         int HEIGHT= 128;
         bmp= Bitmap.createScaledBitmap(bmp, WIDTH, HEIGHT, false);
@@ -198,6 +173,17 @@ public class FaceDetector extends AppCompatActivity implements CameraBridgeViewB
 
     @Override
     public void onCameraViewStarted(int width, int height) {
+        if (ActivityCompat.checkSelfPermission(FaceDetector.this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+            // external memory is actually phones hard drive memory
+            // we must have deep neural networks downloaded and pasted in dnns folder below
+            protoPath = Environment.getExternalStorageDirectory() + "/dnns/deploy.prototxt";
+            caffeWeights = Environment.getExternalStorageDirectory() + "/dnns/res10_300x300_ssd_iter_140000.caffemodel";
+            Log.i(className, "External Storage finished. proto path: " + protoPath + "caffeModel path: "  + caffeWeights +  " .Creating our Network");
+            faceDetector = Dnn.readNetFromCaffe(protoPath, caffeWeights);
+
+        } else {
+            ActivityCompat.requestPermissions(FaceDetector.this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
+        }
 
     }
     @Override
@@ -208,31 +194,47 @@ public class FaceDetector extends AppCompatActivity implements CameraBridgeViewB
     @Override
     protected void onResume() {
         super.onResume();
-        if(!OpenCVLoader.initDebug()) {
-            Toast.makeText(getApplicationContext(), "There's a problem", Toast.LENGTH_SHORT).show();
+        super.onResume();
+        if (!OpenCVLoader.initDebug()) {
+            Log.d(className, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION, this, mLoaderCallback);
         } else {
-            try {
-                baseLoaderCallback.onManagerConnected(baseLoaderCallback.SUCCESS);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            Log.d(className, "OpenCV library found inside package. Using it!");
+            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if(cameraBridgeViewBase != null) {
-            cameraBridgeViewBase.disableView();
+        if(mOpenCvCameraView != null) {
+            mOpenCvCameraView.disableView();
         }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if(cameraBridgeViewBase != null) {
-            cameraBridgeViewBase.disableView();
+        if(mOpenCvCameraView != null) {
+            mOpenCvCameraView.disableView();
             Log.i(className, "Destroying...");
         }
     }
+
+    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
+        @Override
+        public void onManagerConnected(int status) {
+            switch (status) {
+                case LoaderCallbackInterface.SUCCESS: {
+                    Log.i(className, "OpenCV loaded successfully");
+                    mOpenCvCameraView.enableView();
+                }
+                break;
+                default: {
+                    super.onManagerConnected(status);
+                }
+                break;
+            }
+        }
+    };
 }
