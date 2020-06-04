@@ -10,6 +10,11 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
+import android.widget.Toast;
+
+import java.io.File;
+import java.io.FilenameFilter;
+
 import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity  implements AdapterView.OnItemSelectedListener {
@@ -18,8 +23,11 @@ public class MainActivity extends AppCompatActivity  implements AdapterView.OnIt
     private static Button btnQRScann;
     private static Button btnFaceRecognition;
     private static Spinner spnFacialAlgorithm;
+    private static Button btnGenerateCode;
+    private static Button btnDeleteSecret;
+    private static Button btnConfigureSecurity;
 
-    private static  Button btnRecognize;
+    private static  Button btnFingerPrintScan;
 
 
     private final String mPath = Environment.getExternalStorageDirectory()+"/facerecogOCV/";;
@@ -32,25 +40,37 @@ public class MainActivity extends AppCompatActivity  implements AdapterView.OnIt
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main); // Default code
-        btnQRScann = findViewById(R.id.btn_qr_code);
-        btnFaceRecognition = findViewById(R.id.btn_facial_recognition);
-        spnFacialAlgorithm = findViewById(R.id.facial_detection_options);
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.detection_options, android.R.layout.simple_spinner_item);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spnFacialAlgorithm.setAdapter(adapter);
-        spnFacialAlgorithm.setOnItemSelectedListener(this);
+        checkForSavedFaces();
+        if(!savedSecurity) {
+            setContentView(R.layout.activity_set_security);
+            btnQRScann = findViewById(R.id.btn_qr_code);
+            btnFaceRecognition = findViewById(R.id.btn_facial_recognition);
+            spnFacialAlgorithm = findViewById(R.id.facial_detection_options);
+            ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.detection_options, android.R.layout.simple_spinner_item);
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spnFacialAlgorithm.setAdapter(adapter);
+            spnFacialAlgorithm.setOnItemSelectedListener(this);
+        } else {
+            Intent intent = new Intent("android.intent.action.FaceIdentifier");
+            intent.putExtra("mPath", mPath);
+            Toast.makeText(getApplicationContext(), "Facial recognition is set up!", Toast.LENGTH_SHORT).show();
+            startActivityForResult(intent, 3);
+        }
+    }
 
-        //temporary
-        btnRecognize = findViewById(R.id.btn_recognize);
-
-        //check if we have saved set of faces
+    private void checkForSavedFaces() {
+        File pictureLocation = new File(mPath);
+        FilenameFilter jpgFilter = (dir, name) -> name.toLowerCase().endsWith(".jpg") || name.endsWith(".pgm") || name.endsWith(".png");
+        File[] savedFaceImages = pictureLocation.listFiles(jpgFilter);
+        if(savedFaceImages.length >= 10)
+            savedSecurity = true;
     }
 
     @Override
     protected void onStart() {
+        Toast.makeText(getApplicationContext(), "Start", Toast.LENGTH_SHORT).show();
         super.onStart();
-        if(!savedSecurity) {
+        if (!savedSecurity) {
             btnFaceRecognition.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
@@ -65,18 +85,32 @@ public class MainActivity extends AppCompatActivity  implements AdapterView.OnIt
                 }
             });
 
-            btnRecognize.setOnClickListener(new View.OnClickListener() {
+            btnFingerPrintScan.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    Intent intent = new Intent("android.intent.action.FaceIdentifier");
-                    intent.putExtra("mPath", mPath);
-                    startActivityForResult(intent, 3);
+
                 }
             });
-        }
-        else {
-            //we have owners face saved so we need to open camera and screen users face
+        } else {
+            btnGenerateCode.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
 
+                }
+            });
+
+            btnDeleteSecret.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                }
+            });
+
+            btnConfigureSecurity.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+
+                }
+            });
         }
     }
 
@@ -111,15 +145,18 @@ public class MainActivity extends AppCompatActivity  implements AdapterView.OnIt
         }
     }
 
+    public void createDefaultActivity() {
+        setContentView(R.layout.activity_after_authentication);
+        btnGenerateCode = findViewById(R.id.btn_totp_algorithm);
+        btnDeleteSecret = findViewById(R.id.btn_delete_secret);
+        btnConfigureSecurity = findViewById(R.id.btn_configure_security);
+    }
+
     @Override
     protected void onActivityResult (int requestCode, int resultCode, Intent data){
         super.onActivityResult (requestCode, resultCode, data);
         if(requestCode == 1 || requestCode == 3) {
-            if(resultCode == RESULT_OK) {
-                startQRScan();
-            } else  {
-                Log.e(className, "CANT PROCEED");
-            }
+            createDefaultActivity();
         }
         if(requestCode == 2)
             if(resultCode == RESULT_OK) {

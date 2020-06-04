@@ -40,4 +40,8 @@ dependencies {
     implementation 'com.google.android.material:material:1.0.0'
     implementation 'com.google.android.gms:play-services-vision:11.8.0'
     implementation 'androidx.core:core-ktx:+'
+    implementation files('libs\\javacpp.jar')
+    implementation files('libs\\opencv.jar')
+    implementation files('libs\\javacv.jar')
+    implementation files('libs\\openblas.jar')
 }

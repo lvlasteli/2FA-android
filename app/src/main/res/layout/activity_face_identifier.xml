@@ -10,8 +10,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         tools:ignore="MissingConstraints"
-        tools:layout_editor_absoluteX="0dp">
-    </org.opencv.android.JavaCameraView>
+        tools:layout_editor_absoluteX="0dp"
+        tools:layout_editor_absoluteY="0dp"></org.opencv.android.JavaCameraView>
 
     <TextView
         android:id="@+id/txtResult"
@@ -28,5 +28,20 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/java_camera_view"
         app:layout_constraintVertical_bias="0.857" />
+
+    <ImageButton
+        android:id="@+id/btn_camera"
+        style="@android:style/Widget.Material.ImageButton"
+        android:layout_width="62dp"
+        android:layout_height="49dp"
+        android:background="#00FFFFFF"
+        android:src="@drawable/ic_camera"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/txtResult"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.889"
+        tools:visibility="visible" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

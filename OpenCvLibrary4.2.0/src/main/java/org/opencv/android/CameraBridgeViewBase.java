@@ -465,7 +465,7 @@ public abstract class CameraBridgeViewBase extends SurfaceView implements Surfac
      * Disconnects and release the particular camera object being connected to this surface view.
      * Called when syncObject lock is held
      */
-    protected abstract void disconnectCamera();
+    public abstract void disconnectCamera();
 
     // NOTE: On Android 4.1.x the function must be called before SurfaceTexture constructor!
     protected void AllocateCache()

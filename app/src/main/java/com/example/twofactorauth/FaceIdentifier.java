@@ -2,9 +2,12 @@ package com.example.twofactorauth;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.SurfaceView;
+import android.view.View;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 
@@ -13,6 +16,7 @@ import org.opencv.android.CameraActivity;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Point;
@@ -33,27 +37,33 @@ import java.util.List;
 public class FaceIdentifier extends CameraActivity implements CameraBridgeViewBase.CvCameraViewListener2 {
 
     private CameraBridgeViewBase mOpenCvCameraView;
-    private final  String className = FaceDetector2.class.getSimpleName();
+    private final  String className = FaceIdentifier.class.getSimpleName();
+    private ImageButton switchCamera;
+    private boolean frontFacingCamera;
     File cascadeFile;
     CascadeClassifier faceDetector;
-    private TextView txtView;
-    private String detectorName;
+    private TextView txtResult;
     private String mPath;
+    private boolean userFound;
     private Mat mRgba, mGray;
+
+    //class for Facial Identification
+    PersonRecognizer personRecognizer;
 
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Intent intent = getIntent();
-        detectorName = intent.getStringExtra("name");
         mPath = intent.getStringExtra("mPath");
 
         setContentView(R.layout.activity_face_identifier);
-        txtView = findViewById(R.id.txtResult);
-        txtView.setText("Scanning");
+        txtResult = findViewById(R.id.txtResult);
+        switchCamera = findViewById(R.id.btn_camera);
+        txtResult.setText("Scanning");
         mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.java_camera_view);
         mOpenCvCameraView.setCameraIndex(CameraBridgeViewBase.CAMERA_ID_FRONT);
+        frontFacingCamera = true;
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
         mOpenCvCameraView.setCvCameraViewListener(this);
     }
@@ -61,6 +71,25 @@ public class FaceIdentifier extends CameraActivity implements CameraBridgeViewBa
     @Override
     protected void onStart() {
         super.onStart();
+        switchCamera.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                switchCameras();
+            }
+        });
+    }
+
+    public void switchCameras()
+    {
+        mOpenCvCameraView.disableView();
+        if(frontFacingCamera) {
+            mOpenCvCameraView.setCameraIndex(CameraBridgeViewBase.CAMERA_ID_BACK);
+            frontFacingCamera = false;
+        } else {
+            mOpenCvCameraView.setCameraIndex(CameraBridgeViewBase.CAMERA_ID_FRONT);
+            frontFacingCamera = true;
+        }
+        mOpenCvCameraView.enableView();
     }
 
     @Override
@@ -78,7 +107,21 @@ public class FaceIdentifier extends CameraActivity implements CameraBridgeViewBa
 
         Rect[] facesArray = faces.toArray();
 
-        //TO:DO Compare saved faces
+        //Compare saved faces
+        if(facesArray.length > 0) {
+            Mat mat = new Mat();
+            mat = mGray.submat(facesArray[0]);
+            Bitmap mBitmap = Bitmap.createBitmap(mat.width(), mat.height(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(mat, mBitmap);
+            userFound = personRecognizer.predictUser(mat);
+            if(userFound) {
+                Log.e(className, "User found");
+                Intent intent = getIntent();
+                setResult(RESULT_OK, intent);
+                finish();
+            }
+
+        }
 
         for(Rect rect: facesArray) {
             Imgproc.rectangle(mRgba, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height), new Scalar(255,255, 0), 3);
@@ -95,7 +138,9 @@ public class FaceIdentifier extends CameraActivity implements CameraBridgeViewBa
 
     @Override
     public void onCameraViewStarted(int width, int height) {
+        personRecognizer = new PersonRecognizer(mPath);
         try {
+            personRecognizer.loadFaces();
             InputStream inputStream = getResources().openRawResource(R.raw.haarcascade_frontalface_alt2);
             File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
             cascadeFile = new File(cascadeDir, "haarcascade_frontalface_alt2.xml");
@@ -130,10 +175,10 @@ public class FaceIdentifier extends CameraActivity implements CameraBridgeViewBa
     public void onResume() {
         super.onResume();
         if (!OpenCVLoader.initDebug()) {
-            Log.d(className, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
+            Log.e(className, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
             OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION, this, mLoaderCallback);
         } else {
-            Log.d(className, "OpenCV library found inside package. Using it!");
+            Log.i(className, "OpenCV library found inside package. Using it!");
             mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
     }

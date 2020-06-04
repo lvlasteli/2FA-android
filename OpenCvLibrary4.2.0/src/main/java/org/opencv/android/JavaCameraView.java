@@ -271,7 +271,7 @@ public class JavaCameraView extends CameraBridgeViewBase implements PreviewCallb
     }
 
     @Override
-    protected void disconnectCamera() {
+    public void disconnectCamera() {
         /* 1. We need to stop thread which updating the frames
          * 2. Stop camera and release it
          */

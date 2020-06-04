@@ -58,8 +58,6 @@ public class FaceDetector extends CameraActivity implements CameraBridgeViewBase
         mPath = intent.getStringExtra("mPath");
 
         setContentView(R.layout.activity_face_detection);
-
-
         txtView = findViewById(R.id.txt_detectorName);
         txtView.setText(detectorName);
         // make our Java camera support OpenCV functions

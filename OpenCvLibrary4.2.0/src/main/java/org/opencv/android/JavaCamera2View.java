@@ -229,7 +229,7 @@ public class JavaCamera2View extends CameraBridgeViewBase {
     }
 
     @Override
-    protected void disconnectCamera() {
+    public void disconnectCamera() {
         Log.i(LOGTAG, "close camera");
         try {
             CameraDevice c = mCameraDevice;
