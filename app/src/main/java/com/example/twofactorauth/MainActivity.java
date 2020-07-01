@@ -6,176 +6,155 @@ import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.File;
-import java.io.FilenameFilter;
+
+import org.bytedeco.javacv.FrameFilter;
+
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-public class MainActivity extends AppCompatActivity  implements AdapterView.OnItemSelectedListener {
+public class MainActivity extends AppCompatActivity {
 
     private final  String className = MainActivity.class.getSimpleName();
     private static Button btnQRScann;
-    private static Button btnFaceRecognition;
-    private static Spinner spnFacialAlgorithm;
-    private static Button btnGenerateCode;
-    private static Button btnDeleteSecret;
+    private static Button btnResetSettings;
     private static Button btnConfigureSecurity;
 
-    private static  Button btnFingerPrintScan;
+    private static TextView selectedSecurity;
 
 
     private final String mPath = Environment.getExternalStorageDirectory()+"/facerecogOCV/";;
-    static String selectedItem;
+    UserSettings us = new UserSettings(mPath, this);
 
-
-    //private static Button getBtnFaceRecognition2;
-    private static boolean savedSecurity = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        checkForSavedFaces();
-        if(!savedSecurity) {
-            setContentView(R.layout.activity_set_security);
-            btnQRScann = findViewById(R.id.btn_qr_code);
-            btnFaceRecognition = findViewById(R.id.btn_facial_recognition);
-            spnFacialAlgorithm = findViewById(R.id.facial_detection_options);
-            ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.detection_options, android.R.layout.simple_spinner_item);
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            spnFacialAlgorithm.setAdapter(adapter);
-            spnFacialAlgorithm.setOnItemSelectedListener(this);
-        } else {
-            Intent intent = new Intent("android.intent.action.FaceIdentifier");
-            intent.putExtra("mPath", mPath);
-            Toast.makeText(getApplicationContext(), "Facial recognition is set up!", Toast.LENGTH_SHORT).show();
-            startActivityForResult(intent, 3);
+        setContentView(R.layout.activity_main);
+        selectedSecurity = findViewById(R.id.selected_security);
+        btnConfigureSecurity = findViewById(R.id.btn_configure_security);
+        btnQRScann = findViewById(R.id.btn_qr_code);
+        btnResetSettings = findViewById(R.id.btn_delete_settings);
+        us.createSharedPreferences();
+        switch(us.getOption()) {
+            case 1:
+                Log.e(className, "case1");
+                //if user is not using any type of security
+                selectedSecurity.setVisibility(View.INVISIBLE);
+                btnConfigureSecurity.setVisibility(View.VISIBLE);
+                btnQRScann.setVisibility(View.VISIBLE);
+                btnResetSettings.setVisibility(View.GONE);
+                allowNavigation();
+                break;
+            case 2:
+                selectedSecurity.setVisibility(View.VISIBLE);
+                selectedSecurity.setText("Facial Recognition starting...");
+                btnConfigureSecurity.setVisibility(View.INVISIBLE);
+                btnQRScann.setVisibility(View.INVISIBLE);
+                btnResetSettings.setVisibility(View.INVISIBLE);
+                Intent intent = new Intent("android.intent.action.FaceIdentifier");
+                intent.putExtra("mPath", mPath);
+                (new Handler()).postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        startActivityForResult(intent, 1);
+                    }
+                }, 2000);
+                break;
+            case 3:
+                Log.e(className, "case3");
+                selectedSecurity.setVisibility(View.VISIBLE);
+                btnConfigureSecurity.setVisibility(View.INVISIBLE);
+                btnQRScann.setVisibility(View.INVISIBLE);
+                btnResetSettings.setVisibility(View.INVISIBLE);
+                Intent intent2 = new Intent("android.intent.action.FingerprintAuthentication");
+                intent2.putExtra("mPath", mPath);
+                startActivityForResult(intent2, 2);
+                break;
         }
-    }
-
-    private void checkForSavedFaces() {
-        File pictureLocation = new File(mPath);
-        FilenameFilter jpgFilter = (dir, name) -> name.toLowerCase().endsWith(".jpg") || name.endsWith(".pgm") || name.endsWith(".png");
-        File[] savedFaceImages = pictureLocation.listFiles(jpgFilter);
-        if(savedFaceImages.length >= 10)
-            savedSecurity = true;
     }
 
     @Override
     protected void onStart() {
-        Toast.makeText(getApplicationContext(), "Start", Toast.LENGTH_SHORT).show();
         super.onStart();
-        if (!savedSecurity) {
-            btnFaceRecognition.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    setUpFacialRecognition();
-                }
-            });
-
-            btnQRScann.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    startQRScan();
-                }
-            });
-
-            btnFingerPrintScan.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-
-                }
-            });
-        } else {
-            btnGenerateCode.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-
-                }
-            });
-
-            btnDeleteSecret.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                }
-            });
-
-            btnConfigureSecurity.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-
-                }
-            });
-        }
     }
 
+    private void allowNavigation() {
+        btnConfigureSecurity.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                configureSecurity();
+            }
+        });
+
+        btnQRScann.setOnClickListener(v -> {
+            String secret = us.retrievePreferencesValue("Secret");
+            if(secret.isEmpty())
+                startQRScan();
+            else
+                generateCode();
+        });
+
+        btnResetSettings.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                us.resetToDefaultSharedPreferences();
+                us.removeSavedSettings();
+            }
+        });
+    }
+
+    private void configureSecurity() {
+        Intent intent = new Intent("android.intent.action.ConfigureSecurity");
+        intent.putExtra("mPath", mPath);
+        startActivityForResult(intent, 4);
+    }
 
     private void startQRScan() {
         Intent intent = new Intent("android.intent.action.QRScanner");
-        startActivityForResult(intent, 2);
+        startActivityForResult(intent, 3);
     }
 
-    private void setUpFacialRecognition() {
-        Log.e(className, "Selected method: " + selectedItem);
-        if(selectedItem.equals("Neural Network (Fast)")) {
-            Intent intent = new Intent("android.intent.action.FaceDetector");
-            intent.putExtra("name", selectedItem);
-            intent.putExtra("mPath", mPath);
-            (new Handler()).postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    startActivityForResult(intent, 1);
-                }
-            }, 1000);
-        } else {
-            Intent intent = new Intent("android.intent.action.FaceDetector2");
-            intent.putExtra("name", selectedItem);
-            intent.putExtra("mPath", mPath);
-            (new Handler()).postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    startActivityForResult(intent, 1);
-                }
-            }, 1000);
-        }
+    private void generateCode() {
+        Intent generateCode = new Intent("android.intent.action.TotpCodeGenerator");
+        startActivity(generateCode);
     }
 
-    public void createDefaultActivity() {
-        setContentView(R.layout.activity_after_authentication);
-        btnGenerateCode = findViewById(R.id.btn_totp_algorithm);
-        btnDeleteSecret = findViewById(R.id.btn_delete_secret);
-        btnConfigureSecurity = findViewById(R.id.btn_configure_security);
-    }
-
-    @Override
-    protected void onActivityResult (int requestCode, int resultCode, Intent data){
-        super.onActivityResult (requestCode, resultCode, data);
-        if(requestCode == 1 || requestCode == 3) {
-            createDefaultActivity();
-        }
-        if(requestCode == 2)
-            if(resultCode == RESULT_OK) {
-                String secret = data.getStringExtra("secret");
-                Intent generateCode = new Intent("android.intent.action.TotpCodeGenerator");
-                Log.i(className, "" + secret);
-                generateCode.putExtra("secret", secret);
-                startActivity(generateCode);
+    private void updateUserSettings(String option) {
+            try {
+                us.updateSharedPreferences(option, true);
+                Log.e(className, "option: " + option);
+            } catch (IOException | GeneralSecurityException e) {
+                Log.e(className, e.getLocalizedMessage());
             }
     }
 
     @Override
-    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-        selectedItem = parent.getItemAtPosition(position).toString();
-    }
-
-    @Override
-    public void onNothingSelected(AdapterView<?> parent) {
-
+    protected void onActivityResult (int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        Log.e(className, "" + requestCode);
+        // if authentication succeeds
+        if ((requestCode == 1 || requestCode == 2) && resultCode == RESULT_OK) {
+            selectedSecurity.setVisibility(View.INVISIBLE);
+            btnConfigureSecurity.setVisibility(View.VISIBLE);
+            btnQRScann.setVisibility(View.VISIBLE);
+            btnResetSettings.setVisibility(View.VISIBLE);
+            allowNavigation();
+        }
+        else if (requestCode == 3 && resultCode == RESULT_OK) {
+            generateCode();
+        }
+        else if(requestCode == 4 && resultCode == RESULT_OK) {
+            String selected_security = data.getStringExtra("security");
+            Toast.makeText(getApplicationContext(), "Security updated: " + selected_security, Toast.LENGTH_SHORT).show();
+            updateUserSettings(selected_security);
+            btnResetSettings.setVisibility(View.VISIBLE);
+        }
     }
 }
 

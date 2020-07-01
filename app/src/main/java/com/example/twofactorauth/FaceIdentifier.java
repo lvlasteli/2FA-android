@@ -213,4 +213,9 @@ public class FaceIdentifier extends CameraActivity implements CameraBridgeViewBa
             }
         }
     };
+
+    @Override
+    public void onBackPressed() {
+        moveTaskToBack(true);
+    }
 }

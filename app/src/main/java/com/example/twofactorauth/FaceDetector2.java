@@ -1,25 +1,18 @@
 package com.example.twofactorauth;
 
-import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.Log;
 import android.view.SurfaceView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraActivity;
 import org.opencv.android.CameraBridgeViewBase;
-import org.opencv.android.JavaCameraView;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Point;
@@ -46,9 +39,10 @@ public class FaceDetector2 extends CameraActivity implements CameraBridgeViewBas
     private TextView txtView;
     private String detectorName;
     private String mPath;
-    static final long MAX_IMAGES = 10;
+    static final long MAX_IMAGES = 20;
     int countImages;
     private Mat mRgba, mGray;
+    private UserSettings userSettings;
 
 
     @Override
@@ -57,6 +51,7 @@ public class FaceDetector2 extends CameraActivity implements CameraBridgeViewBas
         Intent intent = getIntent();
         detectorName = intent.getStringExtra("name");
         mPath = intent.getStringExtra("mPath");
+        userSettings = new UserSettings(mPath);
 
         setContentView(R.layout.activity_face_detection);
         txtView = findViewById(R.id.txt_detectorName);
@@ -97,7 +92,7 @@ public class FaceDetector2 extends CameraActivity implements CameraBridgeViewBas
             Rect rect = facesArray[0];
             m = mRgba.submat(rect);
             if (countImages < MAX_IMAGES) {
-                add(m, countImages);
+                userSettings.saveImages("UserH_", m, countImages);
                 countImages++;
             } else {
                 Intent intent = getIntent();
@@ -107,25 +102,6 @@ public class FaceDetector2 extends CameraActivity implements CameraBridgeViewBas
         }
 
         return mRgba;
-    }
-
-    public void add(Mat m, int countImages) {
-        Bitmap bmp = Bitmap.createBitmap(m.width(), m.height(), Bitmap.Config.ARGB_8888);
-        Utils.matToBitmap(m, bmp);
-        int WIDTH= 128;
-        int HEIGHT= 128;
-        bmp= Bitmap.createScaledBitmap(bmp, WIDTH, HEIGHT, false);
-        try {
-            Log.w(className, "Saving Mat in a file: " + mPath+"UserH-"+countImages+".jpg");
-            FileOutputStream f = new FileOutputStream(mPath+"UserH-"+countImages+".jpg",true);
-            bmp.compress(Bitmap.CompressFormat.JPEG, 100, f);
-            f.close();
-
-        } catch (Exception e) {
-            Log.e(className,e.getCause()+" "+e.getMessage());
-            e.printStackTrace();
-
-        }
     }
 
     // needed when we extend or class with CameraActivity

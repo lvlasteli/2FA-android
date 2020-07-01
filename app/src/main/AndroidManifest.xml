@@ -3,6 +3,7 @@
     package="com.example.twofactorauth">
 
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
@@ -28,11 +29,19 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".MainActivity">
+        <activity android:name=".MainActivity"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".ConfigureSecurity">
+            <intent-filter>
+                <action android:name="android.intent.action.ConfigureSecurity" />
+
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
         <activity
@@ -44,11 +53,20 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
         <activity
             android:name=".FaceDetector2"
             android:screenOrientation="landscape">
             <intent-filter>
                 <action android:name="android.intent.action.FaceDetector2" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".FingerprintAuthentication">
+            <intent-filter>
+                <action android:name="android.intent.action.FingerprintAuthentication" />
 
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
@@ -62,7 +80,6 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-
         <activity android:name=".TotpCodeGenerator">
             <intent-filter>
                 <action android:name="android.intent.action.TotpCodeGenerator" />

@@ -2,11 +2,21 @@ package com.example.twofactorauth;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
+import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.time.Instant;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -15,66 +25,71 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class TotpCodeGenerator extends AppCompatActivity {
 
+    private final String className = TotpCodeGenerator.class.getSimpleName();
     public static final int DEFAULT_TIME_STEP_SECONDS = 30;
     private static Button generateCodeBtn;
+    private static ImageButton resetSecret;
     private String secret;
     private TextView resultText;
+    UserSettings us;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_totp_code_generator);
-        generateCodeBtn = findViewById(R.id.generateTOTP);
+        resetSecret = findViewById(R.id.btn_resetSecret);
         resultText = findViewById(R.id.qrResult);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        Intent intent = getIntent();
-        secret = intent.getStringExtra("secret");
-        resultText.setText("" + secret);
-
-        try {
-            long result = generateCurrentNumber(secret);
-            resultText.setText("" + result);
-        } catch (GeneralSecurityException e) {
-            e.printStackTrace();
-        }
-        setResult(RESULT_OK,intent);
-
-        generateCodeBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                onTOTPClicked();
-            }
-        });
+        us = new UserSettings(this);
+        secret = us.retrievePreferencesValue("Secret");
+        final ExecutorService es = Executors.newCachedThreadPool();
+        ScheduledExecutorService ses = Executors.newSingleThreadScheduledExecutor();
+        ses.scheduleAtFixedRate(() -> es.submit(() -> runTOTPAlgorithm()), 0, 1, TimeUnit.SECONDS);
+        resetSecret.setOnClickListener(view -> resetSecret());
     }
 
-    private void onTOTPClicked()
+    private void resetSecret() {
+        try {
+            us.insertSecret("Secret", "");
+            finish();
+        } catch ( IOException | GeneralSecurityException e) {
+
+        }
+    }
+    private void runTOTPAlgorithm()
     {
         try {
-            long result = generateCurrentNumber(secret);
-            resultText.setText("" + result);
+            String result = Long.toString(generateCurrentNumber(secret));
+            // result that has 0 as first digit doesn't show that digit 0 so we will write it in the string
+            if(result.length() < 6) {
+                for (int i = 0; i < 6 - result.length(); i++) {
+                    result = "0" + result;
+                }
+            }
+            resultText.setText(result);
         } catch (GeneralSecurityException e) {
             e.printStackTrace();
         }
 
     }
 
-    public static long generateCurrentNumber(String base32Secret) throws GeneralSecurityException {
-        return generateNumber(base32Secret, System.currentTimeMillis(), DEFAULT_TIME_STEP_SECONDS);
+    public long generateCurrentNumber(String base32Secret) throws GeneralSecurityException {
+        long unixTimestamp = Instant.now().getEpochSecond();
+        return generateNumber(base32Secret, unixTimestamp, DEFAULT_TIME_STEP_SECONDS);
     }
 
 
-    public static long generateNumber(String base32Secret, long timeMillis, int timeStepSeconds)
+    public static long generateNumber(String base32Secret, long timeSeconds, int timeStepSeconds)
             throws GeneralSecurityException {
 
         byte[] key = base32Secret.getBytes();
-
         byte[] data = new byte[8];
-        long value = timeMillis / 1000 / timeStepSeconds;
+        long value = timeSeconds / timeStepSeconds;
         for (int i = 7; value > 0; i--) {
             data[i] = (byte) (value & 0xFF);
             value >>= 8;

@@ -12,6 +12,7 @@ import android.util.Log;
 import android.util.SparseArray;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -21,25 +22,33 @@ import com.google.android.gms.vision.barcode.Barcode;
 import com.google.android.gms.vision.barcode.BarcodeDetector;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 public class QRScanner extends AppCompatActivity {
 
     private final  String className = QRScanner.class.getSimpleName();
     private SurfaceView backCamera;
-    private TextView tvResult;
+    private TextView textResult;
+    private ImageView imageViewIcon;
     private BarcodeDetector barcodeDetector;
     private CameraSource cameraSource;
     private static final int REQUEST_CAMERA_PERMISSION = 201;
+    private UserSettings us;
+    private Context context;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scan);
         backCamera = findViewById(R.id.svCamera);
-        tvResult = findViewById(R.id.tvResult);
+        textResult = findViewById(R.id.tvResult);
+        imageViewIcon = findViewById(R.id.iVIcon);
+        context =  this;
+        us = new UserSettings(this);
     }
 
 
@@ -52,20 +61,19 @@ public class QRScanner extends AppCompatActivity {
 
         if (!barcodeDetector.isOperational()) {
             Toast.makeText(getApplicationContext(), "Barcode detector failed", Toast.LENGTH_SHORT).show();
-            tvResult.setText("Barcode detector failed !");
+            textResult.setText("Barcode detector failed !");
             return;
         }
         cameraSource = new CameraSource.Builder(this, barcodeDetector)
                 .setAutoFocusEnabled(true)
                 .build();
 
-        tvResult.setText("Scanning...");
+        textResult.setText("Scanning");
         startDetection();
     }
 
     private void startDetection() {
         backCamera.getHolder().addCallback(new SurfaceHolder.Callback() {
-
             @Override
             public void surfaceCreated(SurfaceHolder surfaceHolder) {
                 try {
@@ -103,22 +111,23 @@ public class QRScanner extends AppCompatActivity {
             public void receiveDetections(Detector.Detections<Barcode> detections) {
                 final SparseArray<Barcode> qrCodes = detections.getDetectedItems();
                 if (qrCodes.size() != 0){
-                    tvResult.post(new Runnable(){
-                        @Override
-                        public void run() {
-                            Vibrator vibrator = (Vibrator)getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
-                            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)  {
-                                vibrator.vibrate(VibrationEffect.createOneShot(1000, VibrationEffect.DEFAULT_AMPLITUDE));
-                            } else {
-                                vibrator.vibrate(1000);
-                            }
-                            Log.i(className, " QR Code value: " + qrCodes.valueAt(0).displayValue);
-                            tvResult.setText("Saving Result...");
-                            // FUTURE FEATURE : need to store it somewhere safe
+                    imageViewIcon.setImageResource(R.drawable.scan_done);
+                    textResult.setTextColor(ContextCompat.getColor(context, R.color.colorPrimary));
+                    textResult.setText("Saving");
+                    textResult.post(() -> {
+                     Vibrator vibrator = (Vibrator)getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
+                        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)  {
+                            vibrator.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
+                        } else {
+                            vibrator.vibrate(500);
+                        }
+                        try {
                             Intent intent = getIntent();
-                            intent.putExtra("secret", qrCodes.valueAt(0).displayValue);
+                            us.insertSecret("Secret", qrCodes.valueAt(0).displayValue);
                             setResult(RESULT_OK, intent);
                             finish();
+                        } catch (GeneralSecurityException | IOException e) {
+                            e.printStackTrace();
                         }
                     });
                 }
