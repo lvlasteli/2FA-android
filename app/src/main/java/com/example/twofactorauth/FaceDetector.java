@@ -1,8 +1,10 @@
 package com.example.twofactorauth;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
@@ -23,6 +25,10 @@ import org.opencv.dnn.Dnn;
 import org.opencv.dnn.Net;
 import org.opencv.imgproc.Imgproc;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
@@ -153,12 +159,10 @@ public class FaceDetector extends CameraActivity implements CameraBridgeViewBase
     @Override
     public void onCameraViewStarted(int width, int height) {
         if (ActivityCompat.checkSelfPermission(FaceDetector.this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-            // external memory is actually phones hard drive memory
-            // we must have deep neural networks downloaded and pasted in dnns folder below
-            protoPath = Environment.getExternalStorageDirectory() + "/dnns/deploy.prototxt";
-            caffeWeights = Environment.getExternalStorageDirectory() + "/dnns/res10_300x300_ssd_iter_140000.caffemodel";
-            Log.i(className, "External Storage finished. proto path: " + protoPath + "caffeModel path: "  + caffeWeights +  " .Creating our Network");
+            protoPath = getPath("deploy.prototxt", this);
+            caffeWeights = getPath("res10_300x300_ssd_iter_140000.caffemodel", this);
             faceDetector = Dnn.readNetFromCaffe(protoPath, caffeWeights);
+            Log.i(className, "Network loaded successfully. proto path: " + protoPath + "caffeModel path: "  + caffeWeights);
 
         } else {
             ActivityCompat.requestPermissions(FaceDetector.this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
@@ -216,4 +220,27 @@ public class FaceDetector extends CameraActivity implements CameraBridgeViewBase
             }
         }
     };
+
+    // Upload file to storage and return a path.
+    private static String getPath(String file, Context context) {
+        AssetManager assetManager = context.getAssets();
+        BufferedInputStream inputStream = null;
+        try {
+            // Read data from assets.
+            inputStream = new BufferedInputStream(assetManager.open(file));
+            byte[] data = new byte[inputStream.available()];
+            inputStream.read(data);
+            inputStream.close();
+            // Create copy file in storage.
+            File outFile = new File(context.getFilesDir(), file);
+            FileOutputStream os = new FileOutputStream(outFile);
+            os.write(data);
+            os.close();
+            // Return a path to file which may be read in common way.
+            return outFile.getAbsolutePath();
+        } catch (IOException ex) {
+            Log.e("DNN path exception!", "Failed to upload a file");
+            return "";
+        }
+    }
 }

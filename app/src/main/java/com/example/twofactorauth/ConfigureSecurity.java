@@ -99,7 +99,7 @@ public class ConfigureSecurity<pivate> extends AppCompatActivity implements Adap
 
     private void setUpFacialRecognition() {
         Log.i(className, "Selected method: " + selectedItem);
-        if(selectedItem.equals("Neural Network (Fast)")) {
+        if(selectedItem.equals("Neural Network (Slow)")) {
             Intent intent = new Intent("android.intent.action.FaceDetector");
             intent.putExtra("name", selectedItem);
             intent.putExtra("mPath", mPath);

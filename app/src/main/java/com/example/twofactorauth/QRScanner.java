@@ -73,6 +73,7 @@ public class QRScanner extends AppCompatActivity {
     }
 
     private void startDetection() {
+        backCamera = findViewById(R.id.svCamera);
         backCamera.getHolder().addCallback(new SurfaceHolder.Callback() {
             @Override
             public void surfaceCreated(SurfaceHolder surfaceHolder) {
@@ -89,7 +90,6 @@ public class QRScanner extends AppCompatActivity {
 
             @Override
             public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int i1, int i2) {
-
             }
 
             @Override
@@ -133,7 +133,5 @@ public class QRScanner extends AppCompatActivity {
                 }
             }
         });
-
     }
-
 }
