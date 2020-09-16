@@ -60,18 +60,15 @@ public class PersonRecognizer {
     }
 
     public boolean predictUser(org.opencv.core.Mat mat) {
-        int label[] = new int[1];
-        double confidence[] = new double[1];
+        int[] label = new int[1];
+        double[] confidence = new double[1];
         //conversion from org.opencv.core.Mat to org.bytedeco.opencv.opencv_core.Mat
        Mat mat2 = new Mat((Pointer) null) {
            { address = mat.getNativeObjAddr(); }
        };
         faceRecognizer.predict(mat2, label, confidence);
         Log.i(className, "Probability for number: " +label[0] + " is " + confidence[0]);
-        if(confidence[0] < 85)
-            return true;
-        else
-            return false;
+        return confidence[0] < 85;
     }
 
 

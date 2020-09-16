@@ -16,9 +16,4 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
         }
     }
-    externalNativeBuild {
-        cmake {
-            path file('./libcxx_helper/CMakeLists.txt')
-        }
-    }
 }

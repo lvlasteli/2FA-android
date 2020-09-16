@@ -32,7 +32,7 @@
         android:layout_alignParentBottom="true"
         android:autoSizeTextType="uniform"
         android:background="#009688"
-        android:text="Welcome this  app will allow you to complete second factor of Two Factor Authentication. To make this app more secure configure security."
+        android:text="This mobile app allows creation of TOTP  for second authentication factor . And allows biometric authentication as a third factor."
         android:textAlignment="center"
         android:textColor="@android:color/white"
         android:textSize="15sp"
